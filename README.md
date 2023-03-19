@@ -11,7 +11,8 @@ A Python script to check the existence and number of followers of TikTok usernam
 - Choose an option from the menu:
   - [1] Check Usernames: checks the usernames stored in `usernames.txt`
   - [2] Generate Usernames: generates random usernames to store in `usernames.txt`
-  - [3] Exit: exits the program
+  - [3] Github: opens github repo
+  - [4] Exit: exits the program
 - When checking usernames, the program will print if the username exists and the number of followers. It will also update `usernames.txt` by removing the checked usernames and adding the ones that don't exist to `hits.txt`.
 
 📝 Notes:
