@@ -4,6 +4,7 @@ import random
 import time
 import os
 import concurrent.futures
+import multiprocessing
 
 endpoint = "https://tiktok.com/@{username}?is_copy_url=1&is_from_webapp=v1"
 checked_usernames = 0
@@ -37,8 +38,11 @@ def check_username(username):
     checked_usernames += 1
     set_title()
 
+    delay = random.uniform(0.5, 1.5)  # Adjust the delay range as needed
+    time.sleep(delay)
+
     response = requests.get(endpoint.format(username=username))
-    
+
     if response.status_code == 200:
         html = response.content.decode("utf-8")
         id = html.split('"id":"')[1].split('"')[0]
@@ -46,30 +50,44 @@ def check_username(username):
         print(Colorate.Horizontal(Colors.red_to_purple, f"[-] Username taken: {username} | Followers: {followers} | ID: {id}"))
         return True
     else:
-        print(Colorate.Horizontal(Colors.green_to_blue, f"[+] Username available: {username} | Followers: 0 | ID: 0"))
+        print(Colorate.Horizontal(Colors.green_to_blue, f'[+] Username available (or ban): {username} | Followers: 0 | ID: 0'))
         with open("hits.txt", "a") as f:
             f.write(username + "\n")
         return False
 
 def check_usernames(usernames):
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+    num_cores = multiprocessing.cpu_count()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_cores) as executor:
         results = list(executor.map(check_username, usernames))
     new_usernames = {username for username, exists in zip(usernames, results) if not exists}
     return new_usernames
 
 def generate_usernames(amount, length, chars):
     usernames = set()
+    pool = multiprocessing.Pool()
     while len(usernames) < amount:
         os.system("cls")
         print(Colorate.Horizontal(Colors.blue_to_purple, f"Usernames generated: {len(usernames)}"))
-        username = ''.join(random.sample(chars, length))
-        if not username.isdigit() and username not in usernames:
-            usernames.add(username)
+
+        batch_usernames = pool.map(generate_username, [(length, chars)] * (amount - len(usernames)))
+
+        usernames.update([username for username in batch_usernames if username])
+
+    pool.close()
+    pool.join()
+
     write_usernames(usernames)
     print(Colorate.Horizontal(Colors.blue_to_purple, f"Generated {len(usernames)} usernames"))
     time.sleep(5)
     os.system("cls")
     menu()
+
+def generate_username(args):
+    length, chars = args
+    username = ''.join(random.sample(chars, length))
+    if not username.isdigit():
+        return username
+    return None
 
 def menu():
     print(Colorate.Horizontal(Colors.blue_to_purple, "TikTok Username Checker by @drqsuperior__"))
@@ -84,8 +102,7 @@ def menu():
     if option == "1":
         with open("usernames.txt", "r") as f:
             usernames = f.read().splitlines()
-        for username in usernames:
-            check_username(username)
+        new_usernames = check_usernames(usernames)
         print(Colorate.Horizontal(Colors.blue_to_purple, "Finished checking all usernames"))
         time.sleep(5)
         os.system("cls")
@@ -107,7 +124,6 @@ def menu():
             time.sleep(2)
             os.system("cls")
             menu()
-        generate_usernames(amount, length)
     elif option == "3":
         os.system("start https://github.com/DRQSuperior/tiktok-checker")
         time.sleep(2)
